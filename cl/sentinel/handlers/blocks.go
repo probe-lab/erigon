@@ -14,6 +14,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
@@ -30,6 +31,7 @@ import (
 const MAX_REQUEST_BLOCKS = 96
 
 func (c *ConsensusHandlers) beaconBlocksByRangeHandler(s network.Stream) error {
+	fmt.Println("beaconBlocksByRangeHandler:", s.Conn().RemotePeer().ShortString())
 	peerId := s.Conn().RemotePeer().String()
 	if err := c.checkRateLimit(peerId, "beaconBlocksByRange", rateLimits.beaconBlocksByRangeLimit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)
@@ -94,6 +96,7 @@ func (c *ConsensusHandlers) beaconBlocksByRangeHandler(s network.Stream) error {
 }
 
 func (c *ConsensusHandlers) beaconBlocksByRootHandler(s network.Stream) error {
+	fmt.Println("beaconBlocksByRootHandler:", s.Conn().RemotePeer().ShortString())
 	peerId := s.Conn().RemotePeer().String()
 	if err := c.checkRateLimit(peerId, "beaconBlocksByRoot", rateLimits.beaconBlocksByRootLimit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)

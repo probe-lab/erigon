@@ -1,10 +1,12 @@
 package sentinel
 
 import (
+	"fmt"
 	"math"
 	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	pubsubpb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -50,9 +52,51 @@ func (s *Sentinel) pubsubOptions() []pubsub.Option {
 		pubsub.WithValidateQueueSize(pubsubQueueSize),
 		pubsub.WithPeerScore(scoreParams, thresholds),
 		pubsub.WithGossipSubParams(pubsubGossipParam()),
+		pubsub.WithEventTracer(&MyTracer{}),
 	}
 	return psOpts
 }
+
+type MyTracer struct{}
+
+func (m MyTracer) Trace(evt *pubsubpb.TraceEvent) {
+	pid, _ := peer.IDFromBytes(evt.PeerID)
+
+	switch *evt.Type {
+	case pubsubpb.TraceEvent_PUBLISH_MESSAGE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.PublishMessage.Topic)
+	case pubsubpb.TraceEvent_REJECT_MESSAGE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.RejectMessage.Topic)
+	case pubsubpb.TraceEvent_DUPLICATE_MESSAGE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.DuplicateMessage.Topic)
+	case pubsubpb.TraceEvent_DELIVER_MESSAGE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.DeliverMessage.Topic)
+	case pubsubpb.TraceEvent_ADD_PEER:
+		fmt.Printf("[%s] [%s] Received event\n", evt.Type, pid.ShortString())
+	case pubsubpb.TraceEvent_REMOVE_PEER:
+		fmt.Printf("[%s] [%s] Received event\n", evt.Type, pid.ShortString())
+	case pubsubpb.TraceEvent_RECV_RPC:
+		fmt.Printf("[%s] [%s] Received event\n", evt.Type, pid.ShortString())
+	case pubsubpb.TraceEvent_SEND_RPC:
+		fmt.Printf("[%s] [%s] Received event\n", evt.Type, pid.ShortString())
+	case pubsubpb.TraceEvent_DROP_RPC:
+		fmt.Printf("[%s] [%s] Received event\n", evt.Type, pid.ShortString())
+	case pubsubpb.TraceEvent_JOIN:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.Join.Topic)
+	case pubsubpb.TraceEvent_LEAVE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.Leave.Topic)
+	case pubsubpb.TraceEvent_GRAFT:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.Graft.Topic)
+	case pubsubpb.TraceEvent_PRUNE:
+		fmt.Printf("[%s] [%s] Received event: %s\n", evt.Type, pid.ShortString(), *evt.Prune.Topic)
+	default:
+		fmt.Printf("Received event: %s \n", evt.Type)
+	}
+}
+
+var _ pubsub.EventTracer = (*MyTracer)(nil)
+
+//_ pubsub.RawTracer   = (*MyTracer)(nil)
 
 // creates a custom gossipsub parameter set.
 func pubsubGossipParam() pubsub.GossipSubParams {

@@ -14,6 +14,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/ledgerwatch/erigon/cl/clparams"
 	"github.com/ledgerwatch/erigon/cl/cltypes"
 	"github.com/ledgerwatch/erigon/cl/sentinel/communication/ssz_snappy"
@@ -24,7 +26,9 @@ import (
 // Since packets are just structs, they can be resent with no issue
 
 func (c *ConsensusHandlers) pingHandler(s network.Stream) error {
-	peerId := s.Conn().RemotePeer().String()
+	pid := s.Conn().RemotePeer()
+	peerId := pid.String()
+	fmt.Println("pingHandler:", pid.ShortString())
 	if err := c.checkRateLimit(peerId, "ping", rateLimits.pingLimit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)
 		return err
@@ -35,6 +39,7 @@ func (c *ConsensusHandlers) pingHandler(s network.Stream) error {
 }
 
 func (c *ConsensusHandlers) goodbyeHandler(s network.Stream) error {
+	fmt.Println("goodbyeHandler:", s.Conn().RemotePeer().ShortString())
 	peerId := s.Conn().RemotePeer().String()
 	if err := c.checkRateLimit(peerId, "goodbye", rateLimits.goodbyeLimit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)
@@ -46,6 +51,7 @@ func (c *ConsensusHandlers) goodbyeHandler(s network.Stream) error {
 }
 
 func (c *ConsensusHandlers) metadataV1Handler(s network.Stream) error {
+	fmt.Println("metadataV1Handler:", s.Conn().RemotePeer().ShortString())
 	peerId := s.Conn().RemotePeer().String()
 	if err := c.checkRateLimit(peerId, "metadataV1", rateLimits.metadataV1Limit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)
@@ -58,17 +64,21 @@ func (c *ConsensusHandlers) metadataV1Handler(s network.Stream) error {
 }
 
 func (c *ConsensusHandlers) metadataV2Handler(s network.Stream) error {
+	fmt.Printf("metadataV2Handler [%s] seq %d attnets %d syncnets %d\n", s.Conn().RemotePeer().ShortString(), c.metadata.SeqNumber, c.metadata.Attnets, c.metadata.Syncnets)
 	peerId := s.Conn().RemotePeer().String()
 
 	if err := c.checkRateLimit(peerId, "metadataV2", rateLimits.metadataV2Limit); err != nil {
+		fmt.Printf("metadataV2Handler [%s] rate limit\n", s.Conn().RemotePeer().ShortString())
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)
 		return err
 	}
+
 	return ssz_snappy.EncodeAndWrite(s, c.metadata, SuccessfulResponsePrefix)
 }
 
 // TODO: Actually respond with proper status
 func (c *ConsensusHandlers) statusHandler(s network.Stream) error {
+	fmt.Println("statusHandler:", s.Conn().RemotePeer().ShortString())
 	peerId := s.Conn().RemotePeer().String()
 	if err := c.checkRateLimit(peerId, "status", rateLimits.statusLimit); err != nil {
 		ssz_snappy.EncodeAndWrite(s, &emptyString{}, RateLimitedPrefix)

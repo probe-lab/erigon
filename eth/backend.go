@@ -401,7 +401,7 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 		}
 		sentries = append(sentries, sentryClient)
 	} else {
-		var readNodeInfo = func() *eth.NodeInfo {
+		readNodeInfo := func() *eth.NodeInfo {
 			var res *eth.NodeInfo
 			_ = backend.chainDB.View(context.Background(), func(tx kv.Tx) error {
 				res = eth.ReadNodeInfo(tx, backend.chainConfig, backend.genesisHash, backend.networkID)
@@ -527,7 +527,8 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 	backend.engine = ethconsensusconfig.CreateConsensusEngine(ctx, stack.Config(), chainConfig, consensusConfig, config.Miner.Notify, config.Miner.Noverify, heimdallClient, config.WithoutHeimdall, blockReader, false /* readonly */, logger)
 
 	inMemoryExecution := func(txc wrap.TxContainer, header *types.Header, body *types.RawBody, unwindPoint uint64, headersChain []*types.Header, bodiesChain []*types.RawBody,
-		notifications *shards.Notifications) error {
+		notifications *shards.Notifications,
+	) error {
 		terseLogger := log.New()
 		terseLogger.SetHandler(log.LvlFilterHandler(log.LvlWarn, log.StderrHandler))
 		// Needs its own notifications to not update RPC daemon and txpool about pending blocks
@@ -597,11 +598,11 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 	if config.DeprecatedTxPool.Disable {
 		backend.txPoolGrpcServer = &txpool.GrpcDisabled{}
 	} else {
-		//cacheConfig := kvcache.DefaultCoherentCacheConfig
-		//cacheConfig.MetricsLabel = "txpool"
+		// cacheConfig := kvcache.DefaultCoherentCacheConfig
+		// cacheConfig.MetricsLabel = "txpool"
 
 		backend.newTxs = make(chan types2.Announcements, 1024)
-		//defer close(newTxs)
+		// defer close(newTxs)
 		backend.txPoolDB, backend.txPool, backend.txPoolFetch, backend.txPoolSend, backend.txPoolGrpcServer, err = txpooluitl.AllComponents(
 			ctx, config.TxPool, kvcache.NewDummy(), backend.newTxs, backend.chainDB, backend.sentriesClient.Sentries(), stateDiffClient, misc.Eip1559FeeCalculator, logger,
 		)
@@ -739,9 +740,9 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 				}
 				backend.sentriesClient.Bd.AddToPrefetch(b.Header(), b.RawBody())
 
-				//p2p
-				//backend.sentriesClient.BroadcastNewBlock(context.Background(), b, b.Difficulty())
-				//rpcdaemon
+				// p2p
+				// backend.sentriesClient.BroadcastNewBlock(context.Background(), b, b.Difficulty())
+				// rpcdaemon
 				if err := miningRPC.(*privateapi.MiningServer).BroadcastMinedBlock(b); err != nil {
 					logger.Error("txpool rpc mined block broadcast", "err", err)
 				}
@@ -898,12 +899,12 @@ func (s *Ethereum) Init(stack *node.Node, config *ethconfig.Config) error {
 		}
 	}
 
-	//eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
+	// eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
 	}
-	//eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+	// eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 	if config.Ethstats != "" {
 		var headCh chan [][]byte
 		headCh, s.unsubscribeEthstat = s.notifications.Events.AddHeaderSubscription()
@@ -998,7 +999,6 @@ func (s *Ethereum) shouldPreserve(block *types.Block) bool { //nolint
 // is already running, this method adjust the number of threads allowed to use
 // and updates the minimum price required by the transaction pool.
 func (s *Ethereum) StartMining(ctx context.Context, db kv.RwDB, stateDiffClient *direct.StateDiffClientDirect, mining *stagedsync.Sync, miner stagedsync.MiningState, gasPrice *uint256.Int, quitCh chan struct{}, tmpDir string, logger log.Logger) error {
-
 	var borcfg *bor.Bor
 	if b, ok := s.engine.(*bor.Bor); ok {
 		borcfg = b
@@ -1010,7 +1010,7 @@ func (s *Ethereum) StartMining(ctx context.Context, db kv.RwDB, stateDiffClient 
 		}
 	}
 
-	//if borcfg == nil {
+	// if borcfg == nil {
 	if !miner.MiningConfig.Enabled {
 		return nil
 	}
@@ -1082,7 +1082,6 @@ func (s *Ethereum) StartMining(ctx context.Context, db kv.RwDB, stateDiffClient 
 
 	streamCtx, streamCancel := context.WithCancel(ctx)
 	stream, err := stateDiffClient.StateChanges(streamCtx, &remote.StateChangeRequest{WithStorage: false, WithTransactions: true}, grpc.WaitForReady(true))
-
 	if err != nil {
 		streamCancel()
 		return err
@@ -1494,6 +1493,7 @@ func (s *Ethereum) SentryCtx() context.Context {
 func (s *Ethereum) SentryControlServer() *sentry_multi_client.MultiClient {
 	return s.sentriesClient
 }
+
 func (s *Ethereum) BlockIO() (services.FullBlockReader, *blockio.BlockWriter) {
 	return s.blockReader, s.blockWriter
 }

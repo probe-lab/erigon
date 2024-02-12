@@ -32,6 +32,8 @@ func (s *Sentinel) ConnectWithPeer(ctx context.Context, info peer.AddrInfo) (err
 	if err != nil {
 		return err
 	}
+
+	log.Info("Connected with peer", info.ID.ShortString())
 	return nil
 }
 
@@ -73,6 +75,7 @@ func (s *Sentinel) listenForPeers() {
 		log.Warn("Could not connect to static peers", "reason", err)
 	}
 
+	log.Info("Listen for peers")
 	iterator := s.listener.RandomNodes()
 	defer iterator.Close()
 	for {
@@ -107,6 +110,7 @@ func (s *Sentinel) listenForPeers() {
 		}
 
 		go func(peerInfo *peer.AddrInfo) {
+			log.Info("Found peer", (*peerInfo).ID.ShortString())
 			if err := s.ConnectWithPeer(s.ctx, *peerInfo); err != nil {
 				log.Trace("[Sentinel] Could not connect with peer", "err", err)
 			}
@@ -115,6 +119,7 @@ func (s *Sentinel) listenForPeers() {
 }
 
 func (s *Sentinel) connectToBootnodes() error {
+	log.Info("Connect to bootnodes")
 	for i := range s.discoverConfig.Bootnodes {
 		if err := s.discoverConfig.Bootnodes[i].Record().Load(enr.WithEntry("tcp", new(enr.TCP))); err != nil {
 			if !enr.IsNotFound(err) {

@@ -22,6 +22,7 @@ type ServerConfig struct {
 }
 
 func createSentinel(cfg *sentinel.SentinelConfig, db persistence.RawBeaconBlockChain, indiciesDB kv.RwDB, logger log.Logger) (*sentinel.Sentinel, error) {
+	log.Info("createSentinel")
 	sent, err := sentinel.New(context.Background(), cfg, db, indiciesDB, logger)
 	if err != nil {
 		return nil, err

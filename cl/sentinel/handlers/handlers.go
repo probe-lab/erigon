@@ -16,6 +16,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"sync"
@@ -46,9 +47,11 @@ type RateLimits struct {
 	beaconBlocksByRootLimit  int
 }
 
-const punishmentPeriod = time.Minute
-const defaultRateLimit = math.MaxInt
-const defaultBlockHandlerRateLimit = 200
+const (
+	punishmentPeriod             = time.Minute
+	defaultRateLimit             = math.MaxInt
+	defaultBlockHandlerRateLimit = 200
+)
 
 var rateLimits = RateLimits{
 	pingLimit:                defaultRateLimit,
@@ -82,7 +85,8 @@ const (
 )
 
 func NewConsensusHandlers(ctx context.Context, db persistence.RawBeaconBlockChain, indiciesDB kv.RoDB, host host.Host,
-	peers *peers.Pool, beaconConfig *clparams.BeaconChainConfig, genesisConfig *clparams.GenesisConfig, metadata *cltypes.Metadata, enabledBlocks bool) *ConsensusHandlers {
+	peers *peers.Pool, beaconConfig *clparams.BeaconChainConfig, genesisConfig *clparams.GenesisConfig, metadata *cltypes.Metadata, enabledBlocks bool,
+) *ConsensusHandlers {
 	c := &ConsensusHandlers{
 		host:               host,
 		metadata:           metadata,
@@ -105,6 +109,7 @@ func NewConsensusHandlers(ctx context.Context, db persistence.RawBeaconBlockChai
 	}
 
 	if c.enableBlocks {
+		fmt.Println("enable blocks")
 		hm[communication.BeaconBlocksByRangeProtocolV2] = c.beaconBlocksByRangeHandler
 		hm[communication.BeaconBlocksByRootProtocolV2] = c.beaconBlocksByRootHandler
 	}

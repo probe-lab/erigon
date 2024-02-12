@@ -255,6 +255,7 @@ func New(
 		return nil, fmt.Errorf("[Sentinel] failed to subscribe to gossip err=%w", err)
 	}
 
+	log.Info("Own peer ID", s.host.ID(), s.host.ID().ShortString())
 	return s, nil
 }
 
@@ -267,6 +268,7 @@ func (s *Sentinel) RecvGossip() <-chan *GossipMessage {
 }
 
 func (s *Sentinel) Start() error {
+	log.Info("Start")
 	if s.started {
 		s.logger.Warn("[Sentinel] already running")
 	}
